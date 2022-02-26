@@ -1,3 +1,6 @@
+#assets produces by servers / clients when running
+assets/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

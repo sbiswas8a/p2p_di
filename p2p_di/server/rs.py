@@ -1,29 +1,63 @@
 from math import inf
+from threading import Thread, Lock
 from p2p_di.server.server import Server
+from p2p_di.utils.utils import DEFAULT_RS_PORT, Peer_Entry
 import sys
 import socket
 import os
 import tinydb
+import contextlib
 
 # RegistrationServer, child class of Server
 class RegistrationServer(Server):
 
     # constructor
     # can pass in file for list of peers known to server
-    def __init__(self) -> None:
+    # set clean to false to have server use existing log / peer list
+    def __init__(self, clean=True) -> None:
         super().__init__()
+        self.lock = Lock()
+        self.peers = {}
+        if clean:
+            with contextlib.suppress(FileNotFoundError):
+                os.remove('../../assets/rs/rs_log.json')
+                os.remove('../../assets/rs/peer_list.json')
+        else:
+            self.load_peers()
         self.log = tinydb.TinyDB('../../assets/rs/rs_log.json')
         self.peers_db = tinydb.TinyDB('../../assets/rs/peer_list.json')
+        self.startup()
 
     # Adding default port in override
-    def startup(self, port=65234, period=inf) -> None:
-        super().startup()
+    def startup(self, port=DEFAULT_RS_PORT, period=inf) -> None:
+        self.update_loop_running = True
+        self.update_thread = Thread(target=self.update_loop, daemon=False)
+        self.update_thread.start()
+        super().startup(port, period)
+
 
     # Overridden from parent class
     def process_new_connection(client_socket, client_address) -> None:
         pass
 
-    # overridden from parent class
     # goes through peer list to make any updates
-    def update_state() -> None:
-        pass
+    def update_loop(self) -> None:
+        self.lock.acquire()
+        for index in self.peers:
+            peer = self.peers[index]
+            if peer.is_active():
+                peer.decrement_ttl()
+        self.lock.release()
+
+    # go through peer list and update their status
+    def load_peers(self):
+        existing_peers = self.peers_db.all()
+        for peer_data in existing_peers:
+            peer = Peer_Entry(peer_data['cookie'], peer_data['name'], peer_data['port'], peer_data['last_active'], peer_data['registration_number'])
+        self.peers[peer_data['cookie']] = peer
+
+    # stop the server
+    def stop(self):
+        self.update_loop_running = False
+        self.update_thread.join()
+        super().stop()

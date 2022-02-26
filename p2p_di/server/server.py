@@ -17,11 +17,6 @@ class Server():
     def process_new_connection(client_socket, client_address) -> None:
         pass
 
-    # function to update state in the registration server
-    # overridden in child classes
-    def update_state() -> None:
-        pass
-
     # starts listening
     # @param port to listen on
     # @param period is how long to run server for. Default is infinite
@@ -33,12 +28,10 @@ class Server():
         self.start_time = time.time()
         print("Ready to connect on: " + self.host + ":" + port)
 
-
         while self.running and time.time() < self.start_time + period:
             client_socket, client_address = self.socket.accept()
             new_thread = Thread(target=self.process_new_connection, args=(client_socket, client_address), daemon=True)
             new_thread.start()
-            self.update_state() #for rs
     
     # stop the server
     def stop(self):
