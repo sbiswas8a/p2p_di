@@ -1,7 +1,10 @@
 import time
 import socket
+from typing import Any, Tuple
 import tinydb
 import logging
+from contextlib import closing
+from struct import pack, unpack
 
 DEFAULT_TTL = 7200
 DEFAULT_RS_PORT = 65234
@@ -25,13 +28,38 @@ def log(filename, log_entry, type):
     elif type == 'debug':
         logging.debug(log_entry)
 
+# finds and returns a free port for client's rfc server
+def find_free_port() -> int:
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(('', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
+
+def send(conn: socket.socket, data: bytes) -> Tuple[bool,Any]:
+    data_plus_len = pack('>I', len(data)) + data
+    try:
+        conn.sendall(data_plus_len)
+    except Exception as e:
+        return (False, e)
+    return (True,)
+
+def receive(conn: socket.socket) -> bytes:
+    data_len = unpack('>I', conn.recv(4))[0]
+    received_data = b''
+    left_to_receive = data_len
+    while left_to_receive != 0:
+        received_data += conn.recv(left_to_receive)
+        left_to_receive = data_len - len(received_data)
+    return received_data
+
 # Class for entry in peer list 
 # maintained by the registration server
 class Peer_Entry():
     
-    def __init__(self, cookie, name, port, last_active=None, registration_number=1) -> None:
-        self.name = name
+    def __init__(self, cookie, name, hostname, port, last_active=None, registration_number=1) -> None:
         self.cookie = cookie
+        self.name = name
+        self.hostname = hostname
         self.port = port
         if last_active == None:
             self.active = True
@@ -42,6 +70,21 @@ class Peer_Entry():
             self.last_active = last_active
             self.ttl = 0
         self.registration_number = registration_number
+
+    def re_register(self, port) -> None:
+        self.keep_alive()
+        self.port = port
+        self.registration_number += 1
+
+    def keep_alive(self) -> None:
+        self.last_active = time.time()
+        self.active = True
+        self.ttl = DEFAULT_TTL
+
+    def mark_inactive(self) -> None:
+        self.last_active = time.time()
+        self.active = False
+        self.ttl = 0
 
     def decrement_ttl(self, interval=DEFAULT_UPDATE_INTERVAL) -> None:
         self.ttl -= interval
@@ -54,12 +97,20 @@ class Peer_Entry():
 
     # returns dict that can be inserted in tinydb
     def to_dict(self) -> dict:
-        db_entry ={}
+        db_entry = {}
         db_entry['cookie'] = self.cookie
         db_entry['name'] = self.name
+        db_entry['hostname'] = self.hostname
         db_entry['port'] = self.port
         db_entry['last_active'] = self.last_active
         db_entry['registration_number'] = self.registration_number
         return db_entry
 
-    
+# exception for when message sent is 
+# not in the correct format
+class BadFormatException(Exception):
+    pass
+
+# when client not registered on RS makes a request
+class NotRegisteredException(Exception):
+    pass
