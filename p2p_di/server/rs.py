@@ -1,13 +1,10 @@
-from http import client
 from math import inf
 from threading import Thread, Lock
 import time
 import datetime
-from venv import create
 from p2p_di.server.server import Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
 from p2p_di.utils.utils import DEFAULT_RS_PORT, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, log, send, receive
-import sys
 import socket
 import os
 import tinydb
