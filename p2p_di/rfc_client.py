@@ -3,41 +3,49 @@ from math import inf
 import os
 from __future__ import annotations
 from random import randint
-from typing import List
+from typing import Dict, List
 from p2p_di.server.rfc_server import RFC_Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
 from p2p_di.utils.utils import DEFAULT_TTL, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, log, send, receive, find_free_port
 
+#class for the entries in RFC_Index
 class Index_Entry():
 
-    def __init__(self, title: str, hosted_on = None, ttl = DEFAULT_TTL) -> None:
+    def __init__(self, title:str, owned:bool=False, hosted_on:dict = {}) -> None:
         self.title = title
-        if hosted_on == None:
-            hosted_on = 'self'
-            ttl = inf
+        self.owned = owned
         self.hosted_on = hosted_on
-        self.ttl = ttl
 
     def is_owned(self) -> bool:
-        return self.hosted_on == 'self'
+        return self.owned
 
-    def decrement_ttl(self, interval=DEFAULT_UPDATE_INTERVAL) -> None:
-        if self.ttl != 0:
-            self.ttl -= interval
-            if self.ttl <= 0:
-                self.ttl = 0
+    def get_peers_who_own(self):
+        return self.hosted_on
+
+    def merge_peer_list(self, other:dict):
+        self.hosted_on | other
 
 
 class RFC_Index():
 
-    def __init__(self, entries: List[Index_Entry] = []) -> None:
-        self.list : List[Index_Entry] = entries
+    def __init__(self, entries: dict = {}) -> None:
+        self.rfcs : Dict[str,Index_Entry] = entries
 
     def __str__(self) -> str:
-        return str(self.list)
+        return str(self.rfcs)
+
+    def is_owned(self, rfc:str):
+        return rfc in self.rfcs and self.rfcs[rfc].is_owned()
     
     def to_bytes(self) -> bytes:
         return bytes(str(self), 'utf-8')
+
+    def merge_index(self, other:RFC_Index):
+        for rfc in other.rfcs:
+            if rfc not in self.rfcs:
+                self.rfcs[rfc] = other.rfcs[rfc]
+            else:
+                self.rfcs[rfc] | other.rfcs[rfc]
     
     @staticmethod
     def from_bytes(bytes: bytes) -> RFC_Index:
@@ -53,7 +61,7 @@ class Client():
     # name is not hostname
     # @rfcs_owned is filename containing list of rfcs stored locally
     # rfcs_owned must have each rfc owned on a separate line
-    def __init__(self, name:str, rfcs_owned:str=None) -> None:
+    def __init__(self, name:str, rfcs_owned_list:str=None) -> None:
         random_int = randint(0,999)
         self.name = '{}_{}'.format(name, random_int)
 
@@ -61,19 +69,21 @@ class Client():
         self.rfc_store = os.path.join(base_path, '..', 'assets', 'peer', self.name, 'rfc_store')
         self.log_filename = os.path.join(base_path, '..', 'assets', 'peer', self.name, 'action_log.txt')
         self.rfc_server = RFC_Server(self.name)
-        if rfcs_owned == None:
-            rfcs_owned = os.path.join(base_path, '..', 'assets', 'peer', self.name, 'rfcs_owned.txt')
-        self.rfc_index : RFC_Index = self.load_rfcs(rfcs_owned)
+        if rfcs_owned_list == None:
+            rfcs_owned_list = os.path.join(base_path, '..', 'assets', 'peer', self.name, 'rfcs_owned.txt')
+        else:
+            rfcs_owned_list = os.path.join(os.getcwd(), rfcs_owned_list)
+        self.rfc_index : RFC_Index = self.load_rfcs(rfcs_owned_list)
 
     # load rfc
     def load_rfcs(filename: str) -> RFC_Index:
+        owned = RFC_Index()
         base_path = os.path.dirname(__file__)
         if not os.path.isfile(filename):
-            return RFC_Index()
-        owned = RFC_Index()
+            owned
         with open(filename) as file:
             while line := file.readline().strip():
                 file_path = os.path.join(base_path, '..', 'rfc_store', line)
                 if os.path.isfile(file_path):
-                    owned.list.append[Index_Entry(line)]
+                    owned.list.append[Index_Entry(line, True)]
         return owned
