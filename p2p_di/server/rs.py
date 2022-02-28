@@ -22,12 +22,15 @@ class RegistrationServer(Server):
         super().__init__()
         self.lock = Lock()
         self.peers = {}
-        self.peers_db = tinydb.TinyDB('../../assets/rs/peer_list.json')
-        self.log_filename = '../../assets/rs/rs_log.txt'
+
+        base_path = os.path.dirname(__file__)
+        db_path = os.path.join(base_path, '..', '..', 'assets', 'rs', 'peer_list.json')
+        self.peers_db = tinydb.TinyDB(db_path)
+        self.log_filename = os.path.join(base_path, '..', '..', 'assets', 'rs', 'rs_log.txt')
 
         if clean:
             with contextlib.suppress(FileNotFoundError):
-                os.remove('../../assets/rs/peer_list.json')
+                self.peers_db.truncate()
                 os.remove('../../assets/rs/rs_log.txt')
                 with open(self.log_filename, 'w') as file:
                     now = datetime.datetime.now()
@@ -50,7 +53,7 @@ class RegistrationServer(Server):
 
     def create_error_response(self, e: Exception, code: StatusCodes) -> Message:
         response = Message(MessageType.SERVER_RESPONSE)
-        response.headers['host'] = self.host
+        response.headers['hostname'] = self.host
         response.status_code = code
         response.data = str(e)
         return response
@@ -118,7 +121,7 @@ class RegistrationServer(Server):
                 self.peers[client_cookie] = peer_entry
                 tinydb.TinyDB.insert(peer_entry.to_dict())
             # success response
-            response.headers['host'] = self.host
+            response.headers['hostname'] = self.host
             response.data['cookie'] = client_cookie
             response.status_code = StatusCodes.SUCCESS
         except Exception as e:
@@ -147,7 +150,7 @@ class RegistrationServer(Server):
             tinydb.TinyDB.update(
                 {'last_active': client_last_active}, Peer.cookie == client_cookie)
             # success response
-            response.headers['host'] = self.host
+            response.headers['hostname'] = self.host
             response.headers['cookie'] = client_cookie
             response.status_code = StatusCodes.SUCCESS
         except NotRegisteredException as nre:
@@ -183,7 +186,7 @@ class RegistrationServer(Server):
             tinydb.TinyDB.update(
                 {'last_active': client_last_active}, Peer.cookie == client_cookie)
             # success response
-            response.headers['host'] = self.host
+            response.headers['hostname'] = self.host
             response.headers['cookie'] = client_cookie
             response.status_code = StatusCodes.SUCCESS
         except NotRegisteredException as nre:
@@ -217,7 +220,7 @@ class RegistrationServer(Server):
                 {'last_active': client_last_active}, Peer.cookie == client_cookie)
             # success response
             response.data = str(self.get_active_peers())
-            response.headers['host'] = self.host
+            response.headers['hostname'] = self.host
             response.headers['cookie'] = client_cookie
             response.status_code = StatusCodes.SUCCESS
         except NotRegisteredException as nre:

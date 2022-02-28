@@ -1,9 +1,11 @@
 import contextlib
 import datetime
+from email.mime import base
 from math import inf
-from threading import Lock
+from threading import Thread, Lock
 from p2p_di.server.server import Server
-from p2p_di.utils.utils import find_free_port
+from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
+from p2p_di.utils.utils import DEFAULT_RS_PORT, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, log, send, receive, find_free_port
 import sys
 import socket
 import os
@@ -17,11 +19,13 @@ class RFC_Server(Server):
     def __init__(self, client_name, clean=True) -> None:
         super().__init__()
         self.lock = Lock()
-        self.log_filename = '../../assets/rs/{}_{}_rfc_server_log.txt'.format(client_name, randint(0,999))
+        
+        base_path = os.path.dirname(__file__)
+        log_path = os.path.join(base_path, '..', '..', 'assets', 'peer', client_name, 'rfc_server_log.txt')
+        self.log_filename = log_path
 
         if clean:
             with contextlib.suppress(FileNotFoundError):
-                os.remove('../../assets/rs/rs_log.txt')
                 with open(self.log_filename, 'w') as file:
                     now = datetime.datetime.now()
                     file.write('New log created at:', now.isoformat())
