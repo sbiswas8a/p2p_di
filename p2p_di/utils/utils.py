@@ -23,6 +23,8 @@ def log(filename, log_entry, type):
                             level=logging.DEBUG)
     if type == 'info':
         logging.info(log_entry)
+    elif type == 'warning':
+        logging.warning(log_entry)
     elif type == 'error':
         logging.error(log_entry)
     elif type == 'debug':
@@ -35,13 +37,17 @@ def find_free_port() -> int:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
-def send(conn: socket.socket, data: bytes) -> Tuple[bool,Any]:
+def send(conn: socket.socket, data: bytes):
     data_plus_len = pack('>I', len(data)) + data
-    try:
-        conn.sendall(data_plus_len)
-    except Exception as e:
-        return (False, e)
-    return (True,)
+    conn.sendall(data_plus_len)
+
+# def send(conn: socket.socket, data: bytes) -> Tuple[bool,Any]:
+#     data_plus_len = pack('>I', len(data)) + data
+#     try:
+#         conn.sendall(data_plus_len)
+#     except Exception as e:
+#         return (False, e)
+#     return (True,)
 
 def receive(conn: socket.socket) -> bytes:
     data_len = unpack('>I', conn.recv(4))[0]

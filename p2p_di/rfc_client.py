@@ -1,4 +1,4 @@
-from email.mime import base
+from shutil import copyfile
 from math import inf
 import os
 from __future__ import annotations
@@ -14,15 +14,16 @@ class Index_Entry():
     def __init__(self, title:str, owned:bool=False, hosted_on:dict = {}) -> None:
         self.title = title
         self.owned = owned
-        self.hosted_on = hosted_on
+        # in the form {'ip':port}
+        self.hosted_on : Dict[str] = hosted_on
 
     def is_owned(self) -> bool:
         return self.owned
 
-    def get_peers_who_own(self):
+    def get_peers_who_own(self) -> Dict[str]:
         return self.hosted_on
 
-    def merge_peer_list(self, other:dict):
+    def merge_peer_list(self, other:dict) -> None:
         self.hosted_on | other
 
 
@@ -36,6 +37,12 @@ class RFC_Index():
 
     def is_owned(self, rfc:str):
         return rfc in self.rfcs and self.rfcs[rfc].is_owned()
+
+    def get_owners(self, rfc:str) -> Dict[str]:
+        if rfc not in self.rfcs:
+            return {}
+        else:
+            return self.rfcs[rfc].get_peers_who_own()
     
     def to_bytes(self) -> bytes:
         return bytes(str(self), 'utf-8')
@@ -52,7 +59,7 @@ class RFC_Index():
         string = bytes.decode('utf-8')
         rfc_list = eval(string)
         to_return = RFC_Index()
-        to_return.list = rfc_list
+        to_return.rfcs = rfc_list
         return to_return
         
 
@@ -69,14 +76,14 @@ class Client():
         self.rfc_store = os.path.join(base_path, '..', 'assets', 'peer', self.name, 'rfc_store')
         self.log_filename = os.path.join(base_path, '..', 'assets', 'peer', self.name, 'action_log.txt')
         self.rfc_server = RFC_Server(self.name)
-        if rfcs_owned_list == None:
-            rfcs_owned_list = os.path.join(base_path, '..', 'assets', 'peer', self.name, 'rfcs_owned.txt')
-        else:
+        if rfcs_owned_list:
             rfcs_owned_list = os.path.join(os.getcwd(), rfcs_owned_list)
-        self.rfc_index : RFC_Index = self.load_rfcs(rfcs_owned_list)
+            self.rfc_index : RFC_Index = self.load_rfcs(rfcs_owned_list)
+        else:
+            self.rfc_index : RFC_Index = RFC_Index()
 
     # load rfc
-    def load_rfcs(filename: str) -> RFC_Index:
+    def load_rfcs(self, filename: str) -> RFC_Index:
         owned = RFC_Index()
         base_path = os.path.dirname(__file__)
         if not os.path.isfile(filename):
@@ -85,5 +92,25 @@ class Client():
             while line := file.readline().strip():
                 file_path = os.path.join(base_path, '..', 'rfc_store', line)
                 if os.path.isfile(file_path):
-                    owned.list.append[Index_Entry(line, True)]
+                    copyfile(file_path, os.path.join(base_path, '..', 'assets', 'peer', self.name, 'rfc_store', file_path))
+                    owned.rfcs[filename] = Index_Entry(filename, True)
         return owned
+
+    def start_rfc_server(self, port) -> None:
+        self.rfc_server.startup(port)
+
+    def register(self):
+        #TODO
+        pass
+    
+    def stay_alive(self):
+        #TODO
+        pass
+
+    def query_for_rfc(self, rfc_name: str):
+        #TODO
+        pass
+
+    def leave_rs(self):
+        #TODO
+        pass

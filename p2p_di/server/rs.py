@@ -51,15 +51,8 @@ class RegistrationServer(Server):
         self.update_thread.start()
         super().startup(port, period)
 
-    def create_error_response(self, e: Exception, code: StatusCodes) -> Message:
-        response = Message(MessageType.SERVER_RESPONSE)
-        response.headers['hostname'] = self.host
-        response.status_code = code
-        response.data = str(e)
-        return response
-
     # Overridden from parent class
-
+    #TODO don't throw exceptions
     def process_new_connection(self, client_socket: socket.socket, client_address: socket._RetAddress) -> None:
         try:
             received = receive(client_socket)
@@ -115,7 +108,7 @@ class RegistrationServer(Server):
                 tinydb.TinyDB.update({'port': client_port, 'last_active': client_last_active,
                                      'registration_number': client_registration_number}, Peer.cookie == client_cookie)
             else:  # new client registering
-                client_cookie = uuid4()
+                client_cookie : str = uuid4().hex
                 peer_entry = Peer_Entry(
                     client_cookie, client_name, client_hostname, client_port)
                 self.peers[client_cookie] = peer_entry
@@ -130,8 +123,11 @@ class RegistrationServer(Server):
         finally:
             self.lock.release()
             send(client_socket, response.to_bytes())
-            log(self.log_filename, 'Registered new client: {}:{}'.format(
-                client_hostname, client_port), type="info")
+            if response.status_code == StatusCodes.SUCCESS:
+                log(self.log_filename, 'Registered new client: {}:{}'.format(client_hostname, client_port), type="info")
+            else:
+                log(self.log_filename, 'Failed to register new client: {}'.format(client_hostname), type="info")
+
 
     def mark_inactive(self, message_dict: dict, client_socket: socket.socket, client_address: socket._RetAddress):
         response = Message(MessageType.SERVER_RESPONSE)
