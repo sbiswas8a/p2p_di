@@ -2,6 +2,7 @@ from math import inf
 from threading import Thread, Lock
 import time
 import datetime
+from typing import List
 from p2p_di.server.server import Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
 from p2p_di.utils.utils import DEFAULT_RS_PORT, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, log, send, receive
@@ -263,7 +264,7 @@ class RegistrationServer(Server):
                               peer_data['last_active'], peer_data['registration_number'])
         self.peers[peer_data['cookie']] = peer
 
-    def get_active_peers(self) -> list:
+    def get_active_peers(self) -> List[str]:
         active = []
         peer_entry: Peer_Entry
         for peer_entry in self.peers.values():

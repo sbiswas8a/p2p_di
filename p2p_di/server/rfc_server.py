@@ -131,6 +131,14 @@ class RFC_Server(Server):
     #         return
     #     log(self.log_filename, 'Status marked as inactive on registration server!', type='info')
 
+    #TODO
+    def request_rfc_index():
+        pass
+
+    #TODO
+    def request_rfc():
+        pass
+
     # Overridden from parent class
     def process_new_connection(self, peer_socket: socket.socket, peer_address: socket._RetAddress) -> None:
         try:
@@ -147,9 +155,9 @@ class RFC_Server(Server):
             else:
                 method_type = message_dict['method_type']
                 if method_type == MethodType.RFC_QUERY.name:
-                    self.register_client(message_dict, peer_socket, peer_address)
+                    self.send_rfc_index()#TODO
                 elif method_type == MethodType.GET_RFC.name:
-                    self.mark_inactive(message_dict, peer_socket, peer_address)
+                    self.send_rfc()#TODO
                 else:
                     raise BadFormatException('Method type not supported!')
         except Exception as e:
@@ -158,6 +166,10 @@ class RFC_Server(Server):
             send(peer_socket, response.to_bytes())
             return
 
-#TODO client register
-#TODO client leave
-#TODO client stay alive
+    #TODO
+    def send_rfc_index():
+        pass
+
+    #TODO
+    def send_rfc():
+        pass
