@@ -1,5 +1,6 @@
 from enum import Enum
 from sre_constants import SUCCESS
+from typing import Any
 
 class MessageType(Enum):
 
@@ -39,7 +40,7 @@ class Message():
         self.headers = {}
         self.message_type = type.name
         self.method = ''
-        self.data = ''
+        self.data : Any = None
         if type.name.__contains__('RESPONSE'):
             self.status_code = ''
 

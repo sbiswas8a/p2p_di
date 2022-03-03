@@ -52,7 +52,6 @@ class RegistrationServer(Server):
         super().startup(port, period)
 
     # Overridden from parent class
-    #TODO don't throw exceptions
     def process_new_connection(self, client_socket: socket.socket, client_address: socket._RetAddress) -> None:
         try:
             received = receive(client_socket)
@@ -135,10 +134,12 @@ class RegistrationServer(Server):
         try:
             client_hostname = message_dict['hostname']
             # if cookie not provided or if cookie not recognized
-            if not 'cookie' in message_dict or not message_dict['cookie'] in self.peers:
-                raise NotRegisteredException(
-                    'You are not registered on this server!')
-            client_cookie = message_dict['cookie']
+            if 'cookie' in message_dict:
+                client_cookie = message_dict['cookie']
+                if not client_cookie in self.peers:
+                    raise NotRegisteredException('You are not registered on this server!')
+            else:
+                raise BadFormatException('Cookie not provided. Include assigned cookie in request!')
             peer_entry: Peer_Entry = self.peers[client_cookie]
             peer_entry.mark_inactive()
             client_last_active = peer_entry.last_active
@@ -174,7 +175,7 @@ class RegistrationServer(Server):
                         'Please re-register on the server.')
             else:
                 raise BadFormatException(
-                    'Cookie not provided. Action forbidden!')
+                    'Cookie not provided. Include assigned cookie in request!')
             peer_entry: Peer_Entry = self.peers[client_cookie]
             peer_entry.keep_alive()
             client_last_active = peer_entry.last_active

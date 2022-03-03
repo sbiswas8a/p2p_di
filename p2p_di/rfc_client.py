@@ -100,17 +100,17 @@ class Client():
         self.rfc_server.startup(port)
 
     def register(self):
-        #TODO
-        pass
+        log(self.log_filename, 'Attempting to register on server', type='info')
+        self.rfc_server.register(self.name)
     
     def stay_alive(self):
-        #TODO
-        pass
-
-    def query_for_rfc(self, rfc_name: str):
-        #TODO
-        pass
-
+        log(self.log_filename, 'Pinging server to stay alive', type='info')
+        self.rfc_server.server_requester(MethodType.KEEP_ALIVE, {'success':'Successfully pinged server!', 'failure':'Failed to ping server'})
+    
+    def query_for_peers(self):
+        log(self.log_filename, 'Querying server for peers', type='info')
+        self.rfc_server.server_requester(MethodType.PQUERY, {'success':'Received peer list from server!'})
+    
     def leave_rs(self):
-        #TODO
-        pass
+        log(self.log_filename, 'Leaving server', type='info')
+        self.rfc_server.server_requester(MethodType.LEAVE, {'success':'Successfully updated status!', 'failure':'Failed to update status'})
