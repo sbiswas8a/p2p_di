@@ -116,14 +116,14 @@ class RegistrationServer(Server):
             # success response
             response.headers['hostname'] = self.host
             response.data['cookie'] = client_cookie
-            response.status_code = StatusCodes.SUCCESS
+            response.status_code = StatusCodes.SUCCESS.value
         except Exception as e:
             log(self.log_filename, str(e), type='error')
             response = self.create_error_response(e, StatusCodes.BAD_REQUEST)
         finally:
             self.lock.release()
             send(client_socket, response.to_bytes())
-            if response.status_code == StatusCodes.SUCCESS:
+            if response.status_code == StatusCodes.SUCCESS.value:
                 log(self.log_filename, 'Registered new client: {}:{}'.format(client_hostname, client_port), type="info")
             else:
                 log(self.log_filename, 'Failed to register new client: {}'.format(client_hostname), type="info")
@@ -150,7 +150,7 @@ class RegistrationServer(Server):
             # success response
             response.headers['hostname'] = self.host
             response.headers['cookie'] = client_cookie
-            response.status_code = StatusCodes.SUCCESS
+            response.status_code = StatusCodes.SUCCESS.value
         except NotRegisteredException as nre:
             log(self.log_filename, str(nre), type='error')
             response = self.create_error_response(nre, StatusCodes.FORBIDDEN)
@@ -186,7 +186,7 @@ class RegistrationServer(Server):
             # success response
             response.headers['hostname'] = self.host
             response.headers['cookie'] = client_cookie
-            response.status_code = StatusCodes.SUCCESS
+            response.status_code = StatusCodes.SUCCESS.value
         except NotRegisteredException as nre:
             log(self.log_filename, str(nre), type='error')
             response = self.create_error_response(nre, StatusCodes.FORBIDDEN)
@@ -220,7 +220,7 @@ class RegistrationServer(Server):
             response.data = str(self.get_active_peers())
             response.headers['hostname'] = self.host
             response.headers['cookie'] = client_cookie
-            response.status_code = StatusCodes.SUCCESS
+            response.status_code = StatusCodes.SUCCESS.value
         except NotRegisteredException as nre:
             log(self.log_filename, str(nre), type='error')
             response = self.create_error_response(nre, StatusCodes.FORBIDDEN)

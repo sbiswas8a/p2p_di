@@ -53,10 +53,10 @@ class Message():
         string += "'message_type':'{}'".format(self.message_type) 
         if self.method:
             string += "{}'method':'{}'".format(self.CRLF, self.method)
-        if self.data:
-            string += "{}'data':'{}'".format(self.CRLF, self.data)
         if self.status_code:
             string += "{}'status_code':'{}'".format(self.CRLF, self.status_code)
+        if self.data:
+            string += "{}'data':'{}'".format(self.CRLF, self.data)
         return string
 
     def to_bytes(self):

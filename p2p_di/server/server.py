@@ -43,7 +43,7 @@ class Server():
             type = MessageType.PEER_RESPONSE
         response = Message(type)
         response.headers['hostname'] = self.host
-        response.status_code = code
+        response.status_code = code.value
         response.data = str(e)
         return response
     
