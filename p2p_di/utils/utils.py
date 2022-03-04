@@ -1,11 +1,9 @@
-import time
-import socket
-from typing import Any, List, Tuple
-from pyparsing import line
-import tinydb
 import logging
+import socket
+import time
 from contextlib import closing
 from struct import pack, unpack
+from typing import List
 
 DEFAULT_TTL = 7200
 DEFAULT_RS_PORT = 65234

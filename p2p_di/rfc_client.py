@@ -1,14 +1,15 @@
-from shutil import copyfile
-import os
 from __future__ import annotations
-from random import randint
+
+import os
 import socket
+from random import randint
+from shutil import copyfile
 from typing import Dict, List
-from urllib import request
 from xmlrpc.client import Boolean
+
 from p2p_di.server.rfc_server import RFC_Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
-from p2p_di.utils.utils import DEFAULT_TTL, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, get_rs_address, log, save_rfc_file, send, receive, find_free_port
+from p2p_di.utils.utils import log, receive, save_rfc_file, send
 
 # class for the entries in RFC_Index
 

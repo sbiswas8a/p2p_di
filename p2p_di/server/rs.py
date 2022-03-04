@@ -1,16 +1,19 @@
-from math import inf
-from threading import Thread, Lock
-import time
+import contextlib
 import datetime
+import os
+import socket
+import time
+from math import inf
+from threading import Lock, Thread
 from typing import List
+from uuid import uuid4
+
+import tinydb
 from p2p_di.server.server import Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
-from p2p_di.utils.utils import DEFAULT_RS_PORT, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, log, send, receive
-import socket
-import os
-import tinydb
-import contextlib
-from uuid import uuid4
+from p2p_di.utils.utils import (DEFAULT_RS_PORT, DEFAULT_UPDATE_INTERVAL,
+                                BadFormatException, NotRegisteredException,
+                                Peer_Entry, log, receive, send)
 
 # RegistrationServer, child class of Server
 

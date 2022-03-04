@@ -1,8 +1,8 @@
-from threading import *
+import socket
+import time
 from math import inf
 from threading import Thread
-import time
-import socket
+
 from p2p_di.server.rs import RegistrationServer
 from p2p_di.utils.message import Message, MessageType, StatusCodes
 

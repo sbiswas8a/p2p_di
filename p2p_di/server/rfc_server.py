@@ -1,18 +1,15 @@
 import contextlib
 import datetime
-from email.mime import base
+import os
+import socket
 from math import inf
-from threading import Thread, Lock
-from typing import Any, Dict, Boolean
+from threading import Lock
+from typing import Any, Dict
 from p2p_di.rfc_client import RFC_Index
 from p2p_di.server.server import Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
-from p2p_di.utils.utils import DEFAULT_RS_PORT, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, get_rfc_data, log, send, receive, find_free_port, get_rs_address
-import sys
-import socket
-import os
-import tinydb
-from random import randint
+from p2p_di.utils.utils import (BadFormatException, find_free_port, get_rfc_data,
+                                get_rs_address, log, receive, send)
 
 
 class RFC_Server(Server):
