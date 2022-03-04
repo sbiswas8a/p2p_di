@@ -11,16 +11,19 @@ DEFAULT_RS_PORT = 65234
 DEFAULT_UPDATE_INTERVAL = 5
 
 # returns tuple to be used with socket.connect()
+
+
 def get_rs_address():
     host = socket.gethostbyname(socket.gethostname()+".local")
     return (host, DEFAULT_RS_PORT)
 
+
 def log(filename, log_entry, type):
     logging.basicConfig(filename=filename,
-                            filemode='a',
-                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                            datefmt='%m/%d/%Y %I:%M:%S %p',
-                            level=logging.DEBUG)
+                        filemode='a',
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        datefmt='%m/%d/%Y %I:%M:%S %p',
+                        level=logging.DEBUG)
     if type == 'info':
         logging.info(log_entry)
     elif type == 'warning':
@@ -31,11 +34,14 @@ def log(filename, log_entry, type):
         logging.debug(log_entry)
 
 # finds and returns a free port for client's rfc server
+
+
 def find_free_port() -> int:
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(('', 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
+
 
 def send(conn: socket.socket, data: bytes):
     data_plus_len = pack('>I', len(data)) + data
@@ -49,6 +55,7 @@ def send(conn: socket.socket, data: bytes):
 #         return (False, e)
 #     return (True,)
 
+
 def receive(conn: socket.socket) -> bytes:
     data_len = unpack('>I', conn.recv(4))[0]
     received_data = b''
@@ -58,10 +65,12 @@ def receive(conn: socket.socket) -> bytes:
         left_to_receive = data_len - len(received_data)
     return received_data
 
-# Class for entry in peer list 
+# Class for entry in peer list
 # maintained by the registration server
+
+
 class Peer_Entry():
-    
+
     def __init__(self, cookie, name, hostname, port, last_active=None, registration_number=1) -> None:
         self.cookie = cookie
         self.name = name
@@ -112,11 +121,15 @@ class Peer_Entry():
         db_entry['registration_number'] = self.registration_number
         return db_entry
 
-# exception for when message sent is 
+# exception for when message sent is
 # not in the correct format
+
+
 class BadFormatException(Exception):
     pass
 
 # when client not registered on RS makes a request
+
+
 class NotRegisteredException(Exception):
     pass

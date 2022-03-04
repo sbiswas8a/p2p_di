@@ -25,9 +25,11 @@ class RegistrationServer(Server):
         self.peers = {}
 
         base_path = os.path.dirname(__file__)
-        db_path = os.path.join(base_path, '..', '..', 'assets', 'rs', 'peer_list.json')
+        db_path = os.path.join(base_path, '..', '..',
+                               'assets', 'rs', 'peer_list.json')
         self.peers_db = tinydb.TinyDB(db_path)
-        self.log_filename = os.path.join(base_path, '..', '..', 'assets', 'rs', 'rs_log.txt')
+        self.log_filename = os.path.join(
+            base_path, '..', '..', 'assets', 'rs', 'rs_log.txt')
 
         if clean:
             with contextlib.suppress(FileNotFoundError):
@@ -108,7 +110,7 @@ class RegistrationServer(Server):
                 tinydb.TinyDB.update({'port': client_port, 'last_active': client_last_active,
                                      'registration_number': client_registration_number}, Peer.cookie == client_cookie)
             else:  # new client registering
-                client_cookie : str = uuid4().hex
+                client_cookie: str = uuid4().hex
                 peer_entry = Peer_Entry(
                     client_cookie, client_name, client_hostname, client_port)
                 self.peers[client_cookie] = peer_entry
@@ -124,10 +126,11 @@ class RegistrationServer(Server):
             self.lock.release()
             send(client_socket, response.to_bytes())
             if response.status_code == StatusCodes.SUCCESS.value:
-                log(self.log_filename, 'Registered new client: {}:{}'.format(client_hostname, client_port), type="info")
+                log(self.log_filename, 'Registered new client: {}:{}'.format(
+                    client_hostname, client_port), type="info")
             else:
-                log(self.log_filename, 'Failed to register new client: {}'.format(client_hostname), type="info")
-
+                log(self.log_filename, 'Failed to register new client: {}'.format(
+                    client_hostname), type="info")
 
     def mark_inactive(self, message_dict: dict, client_socket: socket.socket, client_address: socket._RetAddress):
         response = Message(MessageType.SERVER_RESPONSE)
@@ -138,9 +141,11 @@ class RegistrationServer(Server):
             if 'cookie' in message_dict:
                 client_cookie = message_dict['cookie']
                 if not client_cookie in self.peers:
-                    raise NotRegisteredException('You are not registered on this server!')
+                    raise NotRegisteredException(
+                        'You are not registered on this server!')
             else:
-                raise BadFormatException('Cookie not provided. Include assigned cookie in request!')
+                raise BadFormatException(
+                    'Cookie not provided. Include assigned cookie in request!')
             peer_entry: Peer_Entry = self.peers[client_cookie]
             peer_entry.mark_inactive()
             client_last_active = peer_entry.last_active

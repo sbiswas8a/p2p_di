@@ -14,28 +14,32 @@ import os
 import tinydb
 from random import randint
 
+
 class RFC_Server(Server):
 
     # constructor
     # set clean to false to have server use existing log
-    def __init__(self, client_name, client_rfc_index:RFC_Index, clean=True, port:int=None) -> None:
+    def __init__(self, client_name, client_rfc_index: RFC_Index, clean=True, port: int = None) -> None:
         super().__init__()
         self.client_rfc_index = client_rfc_index
         self.lock = Lock()
 
         base_path = os.path.dirname(__file__)
-        log_path = os.path.join(base_path, '..', '..', 'assets', 'peer', client_name, 'rfc_server_log.txt')
+        log_path = os.path.join(
+            base_path, '..', '..', 'assets', 'peer', client_name, 'rfc_server_log.txt')
         self.log_filename = log_path
 
         if clean:
             with contextlib.suppress(FileNotFoundError):
                 with open(self.log_filename, 'w') as file:
                     now = datetime.datetime.now()
-                    file.write('New log for RFC server created at:', now.isoformat())
+                    file.write('New log for RFC server created at:',
+                               now.isoformat())
         else:
             with open(self.log_filename, 'a') as file:
-                    now = datetime.datetime.now()
-                    file.write('New RFC server instance created at:', now.isoformat())
+                now = datetime.datetime.now()
+                file.write('New RFC server instance created at:',
+                           now.isoformat())
         self.startup(port)
 
     # Adding default port in override
@@ -43,18 +47,21 @@ class RFC_Server(Server):
         self.port: int = port
         if port == None:
             self.port = find_free_port()
-            log(self.log_filename, 'Using free port {}!'.format(self.port), type='info')
+            log(self.log_filename, 'Using free port {}!'.format(
+                self.port), type='info')
         super().startup(self.port, period)
-        log(self.log_filename, 'Server listening at port {}!'.format(self.port), type='info')
+        log(self.log_filename, 'Server listening at port {}!'.format(
+            self.port), type='info')
 
     # server_owner is name + random int, not ip
-    def register(self, server_owner:str, current_cookie:str=None) -> str:
+    def register(self, server_owner: str, current_cookie: str = None) -> str:
         message = Message(MessageType.REQUEST_SERVER)
         message.method = MethodType.REGISTER.name
         message.headers['hostname'] = self.host
         if current_cookie:
             message.headers['cookie'] = current_cookie
-        message.data = {'name': server_owner, 'hostname': self.host, 'port': self.port}
+        message.data = {'name': server_owner,
+                        'hostname': self.host, 'port': self.port}
         rs_address = get_rs_address()
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
@@ -63,23 +70,28 @@ class RFC_Server(Server):
                 response_bytes = receive(conn)
                 response_dict = Message.bytes_to_dict(response_bytes)
                 if response_dict['message_type'] != MessageType.SERVER_RESPONSE.name:
-                    log(self.log_filename, 'Response sent by registration server might be invalid!', type='warning')
+                    log(self.log_filename,
+                        'Response sent by registration server might be invalid!', type='warning')
                 if response_dict['status_code'] != StatusCodes.SUCCESS.value:
-                    raise Exception('Server indicated - {}'.format(response_dict['status_code']))
+                    raise Exception(
+                        'Server indicated - {}'.format(response_dict['status_code']))
                 response_data = response_dict['data']
                 rs_cookie = response_data['cookie']
         except KeyError as e:
-            log(self.log_filename, 'Missing data from server response: {}'.format(e), type='error')
+            log(self.log_filename, 'Missing data from server response: {}'.format(
+                e), type='error')
             return
         except (socket.error, Exception) as e:
-            log(self.log_filename, 'Could not register on server! : {}'.format(e), type='error')
+            log(self.log_filename,
+                'Could not register on server! : {}'.format(e), type='error')
             return
-        log(self.log_filename, 'Registered as client @ {}:{}'.format(rs_address[0], rs_address[1]), type='info')
+        log(self.log_filename, 'Registered as client @ {}:{}'.format(
+            rs_address[0], rs_address[1]), type='info')
         return rs_cookie
 
     # helper function used for leave / keep alive / pquery
     # returns list if pquery
-    def server_requester(self, cookie:str, method:MethodType, log_entries: Dict[str]) -> Any:
+    def server_requester(self, cookie: str, method: MethodType, log_entries: Dict[str]) -> Any:
         message = Message(MessageType.REQUEST_SERVER)
         message.method = method.name
         message.headers['hostname'] = self.host
@@ -92,32 +104,37 @@ class RFC_Server(Server):
                 response_bytes = receive(conn)
                 response_dict = Message.bytes_to_dict(response_bytes)
                 if response_dict['message_type'] != MessageType.SERVER_RESPONSE.name:
-                    log(self.log_filename, 'Response sent by registration server might be invalid!', type='warning')
+                    log(self.log_filename,
+                        'Response sent by registration server might be invalid!', type='warning')
                 if response_dict['status_code'] != StatusCodes.SUCCESS.value:
-                    raise Exception('Server indicated - {}'.format(message.status_code))
+                    raise Exception(
+                        'Server indicated - {}'.format(message.status_code))
                 if method == MethodType.PQUERY:
                     try:
                         data = response_dict['data']
                         peer_list = eval(data)
                     except KeyError as ke:
-                        log(self.log_filename, 'No peer list data returned in server response: {}'.format(ke), type='error')
+                        log(self.log_filename, 'No peer list data returned in server response: {}'.format(
+                            ke), type='error')
                         return
                     except SyntaxError as se:
-                        log(self.log_filename, 'Error while parsing peer list returned by server: {}'.format(ke), type='error')
+                        log(self.log_filename, 'Error while parsing peer list returned by server: {}'.format(
+                            ke), type='error')
                         return
         except (socket.error, Exception) as e:
-            log(self.log_filename, '{} : {}'.format(log_entries['failure'], e), type='error')
+            log(self.log_filename, '{} : {}'.format(
+                log_entries['failure'], e), type='error')
             return
-        log(self.log_filename, log_entries['success'], type='info')  
+        log(self.log_filename, log_entries['success'], type='info')
         if method == MethodType.PQUERY:
             return peer_list
 
-    #TODO
+    # TODO
     def request_rfc_index():
         pass
 
-    #TODO
-    def request_rfc():
+    # TODO
+    def request_rfc(self):
         pass
 
     # Overridden from parent class
@@ -126,7 +143,8 @@ class RFC_Server(Server):
             received = receive(peer_socket)
         except (socket.error, Exception) as e:
             log(self.log_filename, str(e), type='error')
-            response = self.create_error_response(e, StatusCodes.INTERNAL_ERROR)
+            response = self.create_error_response(
+                e, StatusCodes.INTERNAL_ERROR)
             send(peer_socket, response.to_bytes())
             return
         try:
@@ -142,7 +160,8 @@ class RFC_Server(Server):
                 else:
                     raise BadFormatException('Method type not supported!')
         except Exception as e:
-            log(self.log_filename, 'Invalid message received from peer: {}'.format(str(e)), type='error')
+            log(self.log_filename, 'Invalid message received from peer: {}'.format(
+                str(e)), type='error')
             response = self.create_error_response(e, StatusCodes.BAD_REQUEST)
             send(peer_socket, response.to_bytes())
             return
@@ -157,12 +176,14 @@ class RFC_Server(Server):
         try:
             send(peer_socket, response.to_bytes)
         except (socket.error, Exception) as e:
-            log(self.log_filename, 'Failed to send RFC Index : {}'.format(e), type='error')
+            log(self.log_filename,
+                'Failed to send RFC Index : {}'.format(e), type='error')
             sent = False
         finally:
             self.lock.release()
             if sent:
-                log(self.log_filename, 'Successfully sent RFC Index to {}:{}'.format(peer_address[0], peer_address[1]), type='info')
+                log(self.log_filename, 'Successfully sent RFC Index to {}:{}'.format(
+                    peer_address[0], peer_address[1]), type='info')
 
     def send_rfc(self, message_dict: Dict, peer_socket: socket.socket, peer_address: socket._RetAddress) -> None:
         self.lock.acquire()
@@ -174,20 +195,23 @@ class RFC_Server(Server):
             if not self.client_rfc_index.is_owned(rfc_requested):
                 raise Exception('Requested RFC not found!')
             else:
-                rfc_store : str = self.client_rfc_index.rfc_store
+                rfc_store: str = self.client_rfc_index.rfc_store
                 rfc_path = os.path.join(rfc_store, rfc_requested)
                 with open(rfc_path, 'rb') as rfc_file:
                     rfc_bytes = rfc_file.read()
-                    response.data = rfc_bytes #rfc is already in bytes
+                    response.data = rfc_bytes  # rfc is already in bytes
         except KeyError as ke:
-            log(self.log_filename, 'Bad request made by peer @ {}:{}'.format(peer_address[0], peer_address[1]), type='error')
+            log(self.log_filename, 'Bad request made by peer @ {}:{}'.format(
+                peer_address[0], peer_address[1]), type='error')
             response.status_code = StatusCodes.BAD_REQUEST.value
             response.data = ke
         except Exception as e:
-            log(self.log_filename, '{} requested by peer @ {}:{} not found!'.format(rfc_requested, peer_address[0], peer_address[1]), type='error')
+            log(self.log_filename, '{} requested by peer @ {}:{} not found!'.format(
+                rfc_requested, peer_address[0], peer_address[1]), type='error')
             response.status_code = StatusCodes.NOT_FOUND.value
             response.data = e
         finally:
             if response.status_code == StatusCodes.SUCCESS.value:
-                log(self.log_filename, '{} sent to peer @ {}:{}'.format(rfc_requested, peer_address[0], peer_address[1]), type='error')
+                log(self.log_filename, '{} sent to peer @ {}:{}'.format(rfc_requested,
+                    peer_address[0], peer_address[1]), type='error')
             send(peer_socket, response.to_bytes())
