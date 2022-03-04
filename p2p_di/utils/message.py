@@ -38,8 +38,6 @@ class StatusCodes(Enum):
 class Message():
 
     CRLF = '<crlf>'
-    SPACE = '<sp>'
-    HEADER = '<h>'
 
     def __init__(self, type: MessageType) -> None:
         self.headers = {}

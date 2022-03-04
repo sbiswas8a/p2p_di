@@ -1,14 +1,14 @@
-from audioop import add
 from shutil import copyfile
-from math import inf
 import os
 from __future__ import annotations
 from random import randint
 import socket
 from typing import Dict, List
+from urllib import request
+from xmlrpc.client import Boolean
 from p2p_di.server.rfc_server import RFC_Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
-from p2p_di.utils.utils import DEFAULT_TTL, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, get_rs_address, log, send, receive, find_free_port
+from p2p_di.utils.utils import DEFAULT_TTL, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, get_rs_address, log, save_rfc_file, send, receive, find_free_port
 
 # class for the entries in RFC_Index
 
@@ -65,14 +65,18 @@ class RFC_Index():
                 self.rfcs[rfc].merge_peer_list(other.rfcs[rfc])
 
     @staticmethod
-    def from_bytes(bytes: bytes) -> RFC_Index:
-        string = bytes.decode('utf-8')
+    def from_string(string: str) -> RFC_Index:
         dict_ie_string: Dict[str, str] = eval(string)
         ri_dict = {}
         for rfc in dict_ie_string:
             ri_dict[rfc] = Index_Entry(False, eval(dict_ie_string[rfc]))
         to_return = RFC_Index(ri_dict)
         return to_return
+
+    @staticmethod
+    def from_bytes(bytes: bytes) -> RFC_Index:
+        string = bytes.decode('utf-8')
+        return RFC_Index.from_string(string)
 
 
 class Client():
@@ -136,16 +140,87 @@ class Client():
         self.rfc_server.server_requester(self.cookie, MethodType.LEAVE, {
                                          'success': 'Successfully updated status!', 'failure': 'Failed to update status'})
 
-    # TODO
     def request_rfc_index(self, peer_hostname: str, peer_port: str):
-        pass
+        log(self.log_filename, "Requesting RFC Index from peer @ {}:{}".format(
+            peer_hostname, peer_port), type='info')
+        request = Message(MessageType.REQUEST_PEER)
+        request.method = MethodType.RFC_QUERY
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
+            try:
+                conn.connect(peer_hostname, peer_port)
+                send(conn, request.to_bytes())
+                response_bytes = receive(conn)
+                response_dict = Message.bytes_to_dict(response_bytes)
+                if response_dict['status_code'] != StatusCodes.SUCCESS.value:
+                    log(self.log_filename, 'Peer ran into error while sending index - {}'.format(
+                        response_dict['data']), type='error')
+                    return
+                try:
+                    peer_rfc_string = response_dict['data']
+                    peer_rfc_index: RFC_Index = RFC_Index.from_string(
+                        peer_rfc_string)
+                    self.rfc_index.merge_index(peer_rfc_index)
+                    self.rfc_server.client_rfc_index = self.rfc_index
+                    log(self.log_filename, 'Successfully merged RFC Index from peer @ {}:{}'.format(
+                        peer_hostname, peer_port), type='info')
+                except (KeyError, Exception) as e:
+                    log(self.log_filename, 'Invalid index data received from peer @ {}:{} - {}'.format(
+                        peer_hostname, peer_port, e), type='error')
+                    return
+            except (socket.error, Exception) as e:
+                log(self.log_filename,
+                    'Error while retrieving RFC Index from peer - {}'.format(e), type='error')
 
-    def request_rfc(self):
-        pass
+    def request_rfc(self, rfc_name, peer_hostname, peer_port) -> Boolean:
+        log(self.log_filename, 'Requesting {} from peer @ {}:{}'.format(rfc_name,
+            peer_hostname, peer_port), type='info')
+        request = Message(MessageType.REQUEST_PEER)
+        request.method = MethodType.GET_RFC
+        request.data = [rfc_name]
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as conn:
+            try:
+                conn.connect(peer_hostname, peer_port)
+                send(conn, request.to_bytes())
+                response_bytes = receive(conn)
+                response_dict = Message.bytes_to_dict(response_bytes)
+                if response_dict['status_code'] != StatusCodes.SUCCESS.value:
+                    log(self.log_filename, 'Peer ran into error while sending index - {}'.format(
+                        response_dict['data']), type='error')
+                    return False
+                try:
+                    requested_rfc = response_dict['data']
+                    save_rfc_file(requested_rfc, os.path.join(
+                        self.rfc_index.rfc_store, rfc_name))
+                    self.rfc_index.rfcs[rfc_name].owned = True
+                    log(self.log_filename, 'Successfully received {} from peer!'.format(
+                        rfc_name), type='info')
+                    return True
+                except (KeyError, Exception) as e:
+                    log(self.log_filename, 'Invalid rfc file received from peer @ {}:{} - {}'.format(
+                        peer_hostname, peer_port, e), type='error')
+                    return False
+            except (socket.error, Exception) as e:
+                log(self.log_filename,
+                    'Error while retrieving {} from peer - {}'.format(rfc_name, e), type='error')
+                return False
 
-    def find_peers_with_rfc(self, rfc_name: str) -> List:
+    def find_peers_with_rfc(self, rfc_name: str) -> Dict[str, str]:
+        log(self.log_filename, 'Finding peers with {}!'.format(rfc_name), type='info')
         self.query_for_peers()  # refreshing peer list
-        for (host, port) in self.peer_list.items():
+        for (host, port) in self.peer_list.items():  # refresh rfc index
             self.request_rfc_index(host, port)
-        rfc_owners = []
-        # TODO finish
+        rfc_owners = {}
+        if rfc_name not in self.rfc_index.rfcs:
+            return rfc_owners
+        else:
+            return self.rfc_index.rfcs[rfc_name].get_peers_who_own()
+
+    # tries to find rfc, pinging every owner till its found
+    def get_rfc(self, rfc_name: str) -> Boolean:
+        rfc_owners = self.find_peers_with_rfc(rfc_name)
+        if len(rfc_owners) == 0:
+            return False
+        for (host, port) in rfc_owners.items():
+            if self.request_rfc(rfc_name, host, port):
+                return True
+        return True

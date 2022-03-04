@@ -7,7 +7,7 @@ from typing import Any, Dict, Boolean
 from p2p_di.rfc_client import RFC_Index
 from p2p_di.server.server import Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
-from p2p_di.utils.utils import DEFAULT_RS_PORT, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, log, send, receive, find_free_port, get_rs_address
+from p2p_di.utils.utils import DEFAULT_RS_PORT, DEFAULT_UPDATE_INTERVAL, Peer_Entry, BadFormatException, NotRegisteredException, get_rfc_data, log, send, receive, find_free_port, get_rs_address
 import sys
 import socket
 import os
@@ -129,14 +129,6 @@ class RFC_Server(Server):
         if method == MethodType.PQUERY:
             return peer_list
 
-    # TODO
-    def request_rfc_index():
-        pass
-
-    # TODO
-    def request_rfc(self):
-        pass
-
     # Overridden from parent class
     def process_new_connection(self, peer_socket: socket.socket, peer_address: socket._RetAddress) -> None:
         try:
@@ -168,16 +160,23 @@ class RFC_Server(Server):
 
     def send_rfc_index(self, peer_socket: socket.socket, peer_address: socket._RetAddress) -> None:
         self.lock.acquire()
-        response = Message(MessageType.PEER_RESPONSE)
-        response.headers['hostname'] = self.host
-        response.data = self.client_rfc_index.to_bytes()
-        response.status_code = StatusCodes.SUCCESS.value
-        sent = True
         try:
-            send(peer_socket, response.to_bytes)
+            response = Message(MessageType.PEER_RESPONSE)
+            response.headers['hostname'] = self.host
+            response.data = str(self.client_rfc_index)
+            response.status_code = StatusCodes.SUCCESS.value
+            sent = True
+        except Exception as ie:
+            log(self.log_filename, 'Internal error occurred while sending RFC index : {}'.format(
+                ie), type='error')
+            response.data = 'Unexpected error occurred!'
+            response.status_code = StatusCodes.INTERNAL_ERROR.value
+            sent = False
+        try:
+            send(peer_socket, response.to_bytes())
         except (socket.error, Exception) as e:
             log(self.log_filename,
-                'Failed to send RFC Index : {}'.format(e), type='error')
+                'Failed to send response to peer - {}'.format(e), type='error')
             sent = False
         finally:
             self.lock.release()
@@ -197,9 +196,7 @@ class RFC_Server(Server):
             else:
                 rfc_store: str = self.client_rfc_index.rfc_store
                 rfc_path = os.path.join(rfc_store, rfc_requested)
-                with open(rfc_path, 'rb') as rfc_file:
-                    rfc_bytes = rfc_file.read()
-                    response.data = rfc_bytes  # rfc is already in bytes
+                response.data = get_rfc_data(rfc_path)
         except KeyError as ke:
             log(self.log_filename, 'Bad request made by peer @ {}:{}'.format(
                 peer_address[0], peer_address[1]), type='error')

@@ -1,6 +1,7 @@
 import time
 import socket
-from typing import Any, Tuple
+from typing import Any, List, Tuple
+from pyparsing import line
 import tinydb
 import logging
 from contextlib import closing
@@ -42,18 +43,28 @@ def find_free_port() -> int:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
+# returns list of strings where each element is one line of rfc text file
+
+
+def get_rfc_data(rfc_path: str) -> List[str]:
+    rfc_lines = []
+    with open(rfc_path, 'rb') as rfc_file:
+        while line := rfc_file.readline().strip():
+            rfc_lines.append(line)
+    return rfc_lines
+
+# writes list of strings to text file
+
+
+def save_rfc_file(lines: List[str], rfc_path: str) -> None:
+    rfc_lines = []
+    with open(rfc_path, 'w') as rfc_file:
+        rfc_file.write('\n'.join(lines))
+
 
 def send(conn: socket.socket, data: bytes):
     data_plus_len = pack('>I', len(data)) + data
     conn.sendall(data_plus_len)
-
-# def send(conn: socket.socket, data: bytes) -> Tuple[bool,Any]:
-#     data_plus_len = pack('>I', len(data)) + data
-#     try:
-#         conn.sendall(data_plus_len)
-#     except Exception as e:
-#         return (False, e)
-#     return (True,)
 
 
 def receive(conn: socket.socket) -> bytes:
