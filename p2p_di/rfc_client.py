@@ -91,6 +91,8 @@ class Client():
         self.cookie: str = None
         self.peer_list: Dict[str, str] = {}
         base_path = os.path.dirname(__file__)
+        os.makedirs(os.path.join(base_path, '..', 'assets',
+                    'peer', self.name, 'rfc_store'), exist_ok=True)
         self.log_filename = os.path.join(
             base_path, '..', 'assets', 'peer', self.name, 'action_log.txt')
         if rfcs_owned_list:
@@ -107,7 +109,7 @@ class Client():
         owned = RFC_Index()
         base_path = os.path.dirname(__file__)
         if not os.path.isfile(filename):
-            owned
+            return owned
         with open(filename) as file:
             while line := file.readline().strip():
                 file_path = os.path.join(base_path, '..', 'rfc_store', line)

@@ -28,6 +28,8 @@ class RegistrationServer(Server):
         self.peers = {}
 
         base_path = os.path.dirname(__file__)
+        os.makedirs(os.path.join(base_path, '..',
+                    'assets', 'rs'), exist_ok=True)
         db_path = os.path.join(base_path, '..', '..',
                                'assets', 'rs', 'peer_list.json')
         self.peers_db = tinydb.TinyDB(db_path)
