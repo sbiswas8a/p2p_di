@@ -24,13 +24,14 @@ class Server():
     # @param port to listen on
     # @param period is how long to run server for. Default is infinite
     def startup(self, port, period=inf) -> None:
+        self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind(self.host, port)
-        # Allow 10 connections to queue before dropping new requests
-        self.listen(10)
+        self.socket.bind((self.host, self.port))
+        # allow 10 connections to queue before dropping new connections
+        self.socket.listen(10)
         self.running = True
         self.start_time = time.time()
-        print("Ready to connect on: " + self.host + ":" + port)
+        print("Ready to connect on: {}:{}".format(self.host, self.port))
 
         while self.running and time.time() < self.start_time + period:
             client_socket, client_address = self.socket.accept()

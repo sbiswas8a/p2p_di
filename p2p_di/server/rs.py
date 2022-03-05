@@ -32,6 +32,8 @@ class RegistrationServer(Server):
                     'assets', 'rs'), exist_ok=True)
         db_path = os.path.join(base_path, '..', '..',
                                'assets', 'rs', 'peer_list.json')
+        open(db_path, 'a+') #creating the file
+        
         self.peers_db = tinydb.TinyDB(db_path)
         self.log_filename = os.path.join(
             base_path, '..', '..', 'assets', 'rs', 'rs_log.txt')
@@ -42,14 +44,14 @@ class RegistrationServer(Server):
                 os.remove(self.log_filename)
                 with open(self.log_filename, 'w') as file:
                     now = datetime.datetime.now()
-                    file.write('New log created at:', now.isoformat())
+                    file.write('New log created at: {}'.format(now.isoformat()))
         else:
             self.load_peers()
-            with open(self.log_filename, 'a') as file:
+            with open(self.log_filename, 'a+') as file:
                 now = datetime.datetime.now()
                 file.write('New server instance created at:', now.isoformat())
-
-        #self.startup()
+        
+        self.startup()
 
     # Adding default port in override
     def startup(self, port=DEFAULT_RS_PORT, period=inf) -> None:
@@ -58,6 +60,7 @@ class RegistrationServer(Server):
             DEFAULT_UPDATE_INTERVAL, self.update_loop), daemon=False)
         self.update_thread.start()
         super().startup(port, period)
+        log(self.log_filename, 'Started Registration Server', type='info')
 
     # Overridden from parent class
     def process_new_connection(self, client_socket: socket.socket, client_address) -> None:
