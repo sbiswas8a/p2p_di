@@ -5,7 +5,7 @@ import socket
 from math import inf
 from threading import Lock
 from typing import Any, Dict
-from p2p_di.rfc_client import RFC_Index
+from p2p_di.client.rfc_client import RFC_Index
 from p2p_di.server.server import Server
 from p2p_di.utils.message import Message, MessageType, MethodType, StatusCodes
 from p2p_di.utils.utils import (BadFormatException, find_free_port, get_rfc_data,
@@ -133,7 +133,7 @@ class RFC_Server(Server):
         except (socket.error, Exception) as e:
             log(self.log_filename, str(e), type='error')
             response = self.create_error_response(
-                e, StatusCodes.INTERNAL_ERROR)
+                MessageType.PEER_RESPONSE, e, StatusCodes.INTERNAL_ERROR)
             send(peer_socket, response.to_bytes())
             return
         try:
@@ -151,7 +151,8 @@ class RFC_Server(Server):
         except Exception as e:
             log(self.log_filename, 'Invalid message received from peer: {}'.format(
                 str(e)), type='error')
-            response = self.create_error_response(e, StatusCodes.BAD_REQUEST)
+            response = self.create_error_response(
+                MessageType.PEER_RESPONSE, e, StatusCodes.BAD_REQUEST)
             send(peer_socket, response.to_bytes())
             return
 

@@ -3,7 +3,6 @@ import time
 from math import inf
 from threading import Thread
 
-from p2p_di.server.rs import RegistrationServer
 from p2p_di.utils.message import Message, MessageType, StatusCodes
 
 # General Server class
@@ -39,12 +38,8 @@ class Server():
                 client_socket, client_address), daemon=True)
             new_thread.start()
 
-    def create_error_response(self, e: Exception, code: StatusCodes) -> Message:
+    def create_error_response(self, type: MessageType, e: Exception, code: StatusCodes) -> Message:
         type: MessageType = None
-        if isinstance(self, RegistrationServer):
-            type = MessageType.SERVER_RESPONSE
-        else:
-            type = MessageType.PEER_RESPONSE
         response = Message(type)
         response.headers['hostname'] = self.host
         response.status_code = code.value

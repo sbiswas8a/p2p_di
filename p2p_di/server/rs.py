@@ -28,7 +28,7 @@ class RegistrationServer(Server):
         self.peers = {}
 
         base_path = os.path.dirname(__file__)
-        os.makedirs(os.path.join(base_path, '..',
+        os.makedirs(os.path.join(base_path, '..', '..',
                     'assets', 'rs'), exist_ok=True)
         db_path = os.path.join(base_path, '..', '..',
                                'assets', 'rs', 'peer_list.json')
@@ -39,7 +39,7 @@ class RegistrationServer(Server):
         if clean:
             with contextlib.suppress(FileNotFoundError):
                 self.peers_db.truncate()
-                os.remove('../../assets/rs/rs_log.txt')
+                os.remove(self.log_filename)
                 with open(self.log_filename, 'w') as file:
                     now = datetime.datetime.now()
                     file.write('New log created at:', now.isoformat())
@@ -49,7 +49,7 @@ class RegistrationServer(Server):
                 now = datetime.datetime.now()
                 file.write('New server instance created at:', now.isoformat())
 
-        self.startup()
+        #self.startup()
 
     # Adding default port in override
     def startup(self, port=DEFAULT_RS_PORT, period=inf) -> None:
@@ -60,12 +60,12 @@ class RegistrationServer(Server):
         super().startup(port, period)
 
     # Overridden from parent class
-    def process_new_connection(self, client_socket: socket.socket, client_address: socket._RetAddress) -> None:
+    def process_new_connection(self, client_socket: socket.socket, client_address) -> None:
         try:
             received = receive(client_socket)
         except Exception as e:
             log(self.log_filename, str(e), type='error')
-            response = self.create_error_response(
+            response = self.create_error_response(MessageType.SERVER_RESPONSE,
                 e, StatusCodes.INTERNAL_ERROR)
             send(client_socket, response.to_bytes())
             return
@@ -91,11 +91,11 @@ class RegistrationServer(Server):
                     raise BadFormatException('Method type not supported!')
         except Exception as e:
             log(self.log_filename, str(e), type='error')
-            response = self.create_error_response(e, StatusCodes.BAD_REQUEST)
+            response = self.create_error_response(MessageType.SERVER_RESPONSE, e, StatusCodes.BAD_REQUEST)
             send(client_socket, response.to_bytes())
             return
 
-    def register_client(self, message_dict: dict, client_socket: socket.socket, client_address: socket._RetAddress):
+    def register_client(self, message_dict: dict, client_socket: socket.socket, client_address):
         response = Message(MessageType.SERVER_RESPONSE)
         client_cookie, client_hostname, client_port = ''
         self.lock.acquire()
@@ -126,7 +126,7 @@ class RegistrationServer(Server):
             response.status_code = StatusCodes.SUCCESS.value
         except Exception as e:
             log(self.log_filename, str(e), type='error')
-            response = self.create_error_response(e, StatusCodes.BAD_REQUEST)
+            response = self.create_error_response(MessageType.SERVER_RESPONSE, e, StatusCodes.BAD_REQUEST)
         finally:
             self.lock.release()
             send(client_socket, response.to_bytes())
@@ -137,7 +137,7 @@ class RegistrationServer(Server):
                 log(self.log_filename, 'Failed to register new client: {}'.format(
                     client_hostname), type="info")
 
-    def mark_inactive(self, message_dict: dict, client_socket: socket.socket, client_address: socket._RetAddress):
+    def mark_inactive(self, message_dict: dict, client_socket: socket.socket, client_address):
         response = Message(MessageType.SERVER_RESPONSE)
         self.lock.acquire()
         try:
@@ -163,17 +163,17 @@ class RegistrationServer(Server):
             response.status_code = StatusCodes.SUCCESS.value
         except NotRegisteredException as nre:
             log(self.log_filename, str(nre), type='error')
-            response = self.create_error_response(nre, StatusCodes.FORBIDDEN)
+            response = self.create_error_response(MessageType.SERVER_RESPONSE, nre, StatusCodes.FORBIDDEN)
         except Exception as e:
             log(self.log_filename, str(e), type='error')
-            response = self.create_error_response(e, StatusCodes.BAD_REQUEST)
+            response = self.create_error_response(MessageType.SERVER_RESPONSE, e, StatusCodes.BAD_REQUEST)
         finally:
             self.lock.release()
             send(client_socket, response.to_bytes())
             log(self.log_filename, '{} left server'.format(
                 client_hostname), type="info")
 
-    def keep_alive(self, message_dict: dict, client_socket: socket.socket, client_address: socket._RetAddress):
+    def keep_alive(self, message_dict: dict, client_socket: socket.socket, client_address):
         response = Message(MessageType.SERVER_RESPONSE)
         self.lock.acquire()
         try:
@@ -199,17 +199,17 @@ class RegistrationServer(Server):
             response.status_code = StatusCodes.SUCCESS.value
         except NotRegisteredException as nre:
             log(self.log_filename, str(nre), type='error')
-            response = self.create_error_response(nre, StatusCodes.FORBIDDEN)
+            response = self.create_error_response(MessageType.SERVER_RESPONSE, nre, StatusCodes.FORBIDDEN)
         except Exception as e:
             log(self.log_filename, str(e), type='error')
-            response = self.create_error_response(e, StatusCodes.BAD_REQUEST)
+            response = self.create_error_response(MessageType.SERVER_RESPONSE, e, StatusCodes.BAD_REQUEST)
         finally:
             self.lock.release()
             send(client_socket, response.to_bytes())
             log(self.log_filename, '{} ttl reset!'.format(
                 client_hostname), type="info")
 
-    def peers_query(self, message_dict: dict, client_socket: socket.socket, client_address: socket._RetAddress):
+    def peers_query(self, message_dict: dict, client_socket: socket.socket, client_address):
         response = Message(MessageType.SERVER_RESPONSE)
         self.lock.acquire()
         try:
@@ -233,10 +233,10 @@ class RegistrationServer(Server):
             response.status_code = StatusCodes.SUCCESS.value
         except NotRegisteredException as nre:
             log(self.log_filename, str(nre), type='error')
-            response = self.create_error_response(nre, StatusCodes.FORBIDDEN)
+            response = self.create_error_response(MessageType.SERVER_RESPONSE, nre, StatusCodes.FORBIDDEN)
         except Exception as e:
             log(self.log_filename, str(e), type='error')
-            response = self.create_error_response(e, StatusCodes.BAD_REQUEST)
+            response = self.create_error_response(MessageType.SERVER_RESPONSE, e, StatusCodes.BAD_REQUEST)
         finally:
             self.lock.release()
             send(client_socket, response.to_bytes())

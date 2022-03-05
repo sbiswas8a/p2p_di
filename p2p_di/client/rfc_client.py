@@ -91,17 +91,17 @@ class Client():
         self.cookie: str = None
         self.peer_list: Dict[str, str] = {}
         base_path = os.path.dirname(__file__)
-        os.makedirs(os.path.join(base_path, '..', 'assets',
+        os.makedirs(os.path.join(base_path, '..', '..', 'assets',
                     'peer', self.name, 'rfc_store'), exist_ok=True)
         self.log_filename = os.path.join(
-            base_path, '..', 'assets', 'peer', self.name, 'action_log.txt')
+            base_path, '..', '..', 'assets', 'peer', self.name, 'action_log.txt')
         if rfcs_owned_list:
             rfcs_owned_list = os.path.join(os.getcwd(), rfcs_owned_list)
             self.rfc_index: RFC_Index = self.load_rfcs(rfcs_owned_list)
         else:
             self.rfc_index: RFC_Index = RFC_Index()
         self.rfc_index.rfc_store = os.path.join(
-            base_path, '..', 'assets', 'peer', self.name, 'rfc_store')
+            base_path, '..', '..', 'assets', 'peer', self.name, 'rfc_store')
         self.rfc_server = RFC_Server(self.name, self.rfc_index, True, port)
 
     # load rfc
@@ -112,10 +112,11 @@ class Client():
             return owned
         with open(filename) as file:
             while line := file.readline().strip():
-                file_path = os.path.join(base_path, '..', 'rfc_store', line)
+                file_path = os.path.join(
+                    base_path, '..', '..', 'rfc_store', line)
                 if os.path.isfile(file_path):
                     copyfile(file_path, os.path.join(
-                        base_path, '..', 'assets', 'peer', self.name, 'rfc_store', file_path))
+                        base_path, '..', '..', 'assets', 'peer', self.name, 'rfc_store', file_path))
                     owned.rfcs[filename] = Index_Entry(filename, True)
         return owned
 
